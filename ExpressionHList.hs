@@ -8,6 +8,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Expression where
 
@@ -23,13 +24,15 @@ data Exp (l :: [*]) (t :: *) where
   App :: Exp l (t1 -> t2) -> Exp l t1 -> Exp l t2
   Lam :: (KnownSymbol s) => Proxy s -> Exp (Tagged s b ': l) t -> Exp l (b -> t)
 
+closed :: (forall l. RecordValues l => Exp l t) -> Exp '[] t
+closed e = e
+
 instance Show (Exp l t) where
   show (SVal s _) = s
   show (Val _) = "Val"
   show (Var v) = symbolVal v
   show (App f x) = "(" ++ (show f) ++ " " ++ (show x) ++ ")"
   show (Lam v b) = "\\" ++ (symbolVal v) ++ " -> " ++ (show b)
-
 
 -- call by value evaluator
 eval' :: HList l -> Exp l t -> t
@@ -63,6 +66,18 @@ sval t = SVal (show t) t
 
 app2 f x y = App (App f x) y
 
+-- to de Bruijn indices
+
+toDB :: forall l t. Exp l t -> DB.DB (RecordValuesR l) t
+
+toDB (Val t) = DB.Val t
+toDB (SVal _ t) = DB.Val t
+
+toDB (App f x) = DB.App (toDB f) (toDB x)
+toDB (Lam _ b) = DB.Lam (toDB b)
+
+toDB (Var s) = DB.VarN $ hRecordIndex s (Proxy::Proxy l)
+
 -- variables
 lx :: Proxy "x"
 lx = Proxy
@@ -94,7 +109,7 @@ times2 = LAM("x") $ app2 plus V("x") V("x")
 
 six = eval $ App times2 (Val 3)
 
-mk_pair = Lam lx $ Lam ly $ Lam lf $ app2 vf vx vy
+mk_pair = LAM("x") $ LAM("y") $ LAM("xy") $ app2 V("xy") V("x") V("y")
 get_fst = Lam lz $ App vz $ Lam lx $ Lam ly $ vx
 get_snd = Lam lz $ App vz $ Lam lx $ Lam ly $ vy
 
@@ -102,15 +117,5 @@ pair12 = app2 mk_pair (sval 1) (sval 2)
 one = eval $ App get_fst pair12
 two = eval $ App get_snd pair12
 
--- to de Bruijn indices
 
-toDB :: forall l t. Exp l t -> DB.DB (RecordValuesR l) t
-
-toDB (Val t) = DB.Val t
-toDB (SVal _ t) = DB.Val t
-
-toDB (App f x) = DB.App (toDB f) (toDB x)
-toDB (Lam _ b) = DB.Lam (toDB b)
-
-toDB (Var s) = DB.VarN $ hRecordIndex s (Proxy::Proxy l)
 
