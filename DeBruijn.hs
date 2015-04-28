@@ -51,15 +51,31 @@ instance (Prefix p l) => Prefix (t ': p) (t ': l) where
 data DB (l :: [*]) (t :: *) where
   Val :: t -> DB l t
   Var :: Var l t -> DB l t
-  VarN :: (HLookupByHNat n l) => Proxy n -> DB l (HLookupByHNatR n l)
+  VarN :: (HNat2Integral n, HLookupByHNat n l) =>
+          Proxy n -> DB l (HLookupByHNatR n l)
   App :: DB l (t1 -> t2) -> DB l t1 -> DB l t2
   Lam :: DB (b ': l) t -> DB l (b -> t)
+
+instance Show (DB l t) where
+  --show (SVal s _) = s
+  show (Val _) = "Val"
+  show (Var v) = show v
+  show (VarN n) = show n
+  show (App f x) = "(" ++ (show f) ++ " " ++ (show x) ++ ")"
+  show (Lam b) = "\\" ++ (show b)
 
 -- Taken from Stephanie Weirich's implementation:
 -- http://www.cs.ox.ac.uk/projects/gip/school/tc.hs
 data Var (l :: [*]) (t :: *) where
   ZVar :: Var (t ': l) t
   SVar :: Var l t -> Var (s ': l) t
+
+varToInt :: Var l t -> Int
+varToInt ZVar = 0
+varToInt (SVar v) = 1 + varToInt v
+
+instance Show (Var l t) where
+  show = show . varToInt
 
 lookupVar :: HList l -> Var l t -> t
 lookupVar (HCons t _) ZVar = t
