@@ -53,13 +53,15 @@ type family HIndex (e :: k) (l :: [k]) :: HNat where
 
 type HRecordIndex l r = HIndex l (RecordLabels r)
 
-hRecordIndex :: Proxy l -> Proxy r -> Proxy (HRecordIndex l r)
+hRecordIndex :: Proxy l -> proxy r -> Proxy (HRecordIndex l r)
 hRecordIndex _ _ = Proxy
 
-type HField' n vs v = (HLookupByHNat n vs, v ~ HLookupByHNatR n vs)
+type HField' n vs v = (
+  HLookupByHNat n vs,
+  v ~ HLookupByHNatR n vs,
+  HNat2Integral n)
 
 type HField l r v =
---  (RecordValues r, HField' l v (RecordLabels r) (RecordValuesR r))
   (RecordValues r, HField' (HRecordIndex l r) (RecordValuesR r) v)
 
 hField :: forall l r v. (HField l r v) => Proxy l -> HList r -> v
