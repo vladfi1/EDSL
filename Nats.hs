@@ -44,6 +44,16 @@ type family ToHNat (n :: TL.Nat) :: HNat where
   ToHNat 0 = HZero
   ToHNat n = HSucc (ToHNat (n TL.- 1))
 
+toHNat :: Proxy n -> Proxy (ToHNat n)
+toHNat _ = Proxy
+
+type family FromHNat (n :: HNat) :: TL.Nat where
+  FromHNat HZero = 0
+  FromHNat (HSucc n) = 1 TL.+ (FromHNat n)
+
+fromHNat :: Proxy n -> Proxy (FromHNat n)
+fromHNat _ = Proxy
+
 data SNat (n :: Nat) where
   SZ :: SNat Z
   SS :: SNat n -> SNat (S n)
