@@ -111,7 +111,7 @@ v1 = Var var1
 v2 = Var var2
 v3 = Var var3
 
-#define VAR(n) (VarN (Proxy::Proxy (ToHNat n)))
+#define V(n) (VarN (Proxy::Proxy (ToHNat n)))
 
 --lift f = App (Val f)
 
@@ -121,7 +121,7 @@ app2 f x y = App (App f x) y
 plus = Val (+)
 times = Val (*)
 
-times2 = Lam $ app2 plus v0 VAR(0)
+times2 = Lam $ app2 plus v0 V(0)
 
 six = eval $ App times2 (Val 3)
 
